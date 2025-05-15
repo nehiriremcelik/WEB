@@ -1,0 +1,144 @@
+{% extends 'cores/base.html' %}
+
+{% block content %}
+<style>
+    .container {
+        max-width: 800px;
+        margin: auto;
+        padding: 2rem 1rem;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .question-box {
+        background: #f9f9f9;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+
+    .question-box h2 {
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
+        color: #222;
+    }
+
+    .form-section {
+        background: #ffffff;
+        padding: 2rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        margin-bottom: 3rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .form-section h3 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
+
+    .form-section form {
+        margin-top: 1rem;
+    }
+
+    .form-section button {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 0.7rem 1.5rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .form-section button:hover {
+        background-color: #218838;
+    }
+
+    .answers-section h3 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
+
+    .answer-card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-left: 4px solid #28a745;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        position: relative;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    .like-btn {
+        background: none;
+        border: none;
+        font-size: 1rem;
+        color: #888;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 0.5rem;
+    }
+
+    .like-btn.liked {
+        color: red;
+    }
+
+    .like-btn:hover {
+        color: #dc3545;
+    }
+</style>
+
+<div class="container">
+
+    <!-- Soru Alanı -->
+    <div class="question-box">
+        <h2>❓ {{ question.text }}</h2>
+    </div>
+
+    <!-- Cevap Formu -->
+    <div class="form-section">
+        <h3>💬 Add Your Answer</h3>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Submit Answer</button>
+        </form>
+    </div>
+
+    <!-- Cevaplar -->
+    <div class="answers-section">
+        <h3>🗨️ Answers</h3>
+        {% for a in answers %}
+            <div class="answer-card">
+                <p>{{ a.content }}</p>
+                <button class="like-btn {% if user in a.likes.all %}liked{% endif %}" data-id="{{ a.id }}">
+                    ❤️ <span id="like-count-{{ a.id }}">{{ a.likes.count }}</span>
+                </button>
+            </div>
+        {% empty %}
+            <p style="color: #777;">There are no answers yet. Be the first to help!</p>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        fetch(`/like-answer/${id}/`)
+            .then(res => res.json())
+            .then(data => {
+                const countEl = document.getElementById(`like-count-${id}`);
+                countEl.textContent = data.like_count;
+                btn.classList.toggle('liked', data.liked);
+            });
+    });
+});
+</script>
+{% endblock %}
