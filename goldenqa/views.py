@@ -55,9 +55,7 @@ def home(request):
 def question_detail(request, pk):
     question = get_object_or_404(Question, pk=pk)
 
-    # Check if the user is logged in
     if not request.user.is_authenticated:
-        # If not authenticated, redirect to the 'must_login' page
         return render(request, 'cores/must_login.html')
 
     answers = question.answers.all().order_by('-created_at')
