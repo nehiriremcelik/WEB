@@ -21,12 +21,12 @@ from django.urls import path
 from goldenqa import views
 
 urlpatterns = [
-    path('', views.home, name='home'),  # This defines the homepage
+    path('', views.home, name='home'),  
     path('admin/', admin.site.urls),
     path('signup/', views.signup, name='signup'),
-    path('login/', views.login_view, name='login'),  # if you use a custom login view
-    path('logout/', views.logout_view, name='logout'),  # if you use a custom logout view
-    path('question/<int:pk>/', views.question_detail, name='question_detail'),
-    path('like-answer/<int:answer_id>/', views.like_answer, name='like_answer'),
+    path('login/', views.login_view, name='login'),  
+    path('logout/', views.logout_view, name='logout'),  
+    path('question/<int:question_id>/', views.question_detail, name='question_detail'),
+    path('vote-answer/<int:answer_id>/', views.vote_answer, name='vote_answer'),
 ]
 

@@ -2,142 +2,339 @@
 
 {% block content %}
 <style>
+    :root {
+        --primary: #A67B5B;
+        --primary-dark: #8B6B4A;
+        --secondary: #4ECDC4;
+        --accent: #FFE66D;
+        --background: #F7F3E9;
+        --card-bg: #FFFFFF;
+        --text: #2C3E50;
+        --text-light: #7F8C8D;
+        --border: #E8E2D9;
+        --upvote: #2196F3;
+        --downvote: #dc3545;
+    }
+
+    body {
+        background-color: var(--background);
+    }
+
     .container {
-        max-width: 800px;
+        max-width: 900px;
         margin: auto;
         padding: 2rem 1rem;
         font-family: 'Inter', sans-serif;
+        color: var(--text);
     }
 
     .question-box {
-        background: #f9f9f9;
+        background: var(--card-bg);
         padding: 2rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
         margin-bottom: 2rem;
+        border: 1px solid var(--border);
     }
 
     .question-box h2 {
         font-size: 1.75rem;
         margin-bottom: 1rem;
-        color: #222;
+        color: var(--primary);
+    }
+
+    .question-meta {
+        color: var(--text-light);
+        font-size: 0.9rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
     }
 
     .form-section {
-        background: #ffffff;
+        background: var(--card-bg);
         padding: 2rem;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
+        border-radius: 16px;
         margin-bottom: 3rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border);
     }
 
     .form-section h3 {
+        font-size: 1.25rem;
         margin-bottom: 1rem;
-        color: #333;
+        color: var(--primary);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-section h3::before {
+        content: "💬";
+        font-size: 1.4rem;
     }
 
     .form-section form {
         margin-top: 1rem;
     }
 
+    .form-section textarea {
+        width: 100%;
+        min-height: 80px;
+        padding: 0.75rem 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background-color: var(--background);
+        resize: vertical;
+    }
+
+    .form-section textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(107, 142, 35, 0.1);
+        background-color: var(--card-bg);
+    }
+
     .form-section button {
-        background-color: #28a745;
+        background-color: var(--primary);
         color: white;
         border: none;
-        padding: 0.7rem 1.5rem;
-        border-radius: 6px;
+        padding: 0.75rem 1.5rem;
         font-size: 1rem;
+        border-radius: 12px;
         cursor: pointer;
-        transition: background-color 0.3s ease;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        margin-top: 1rem;
     }
 
     .form-section button:hover {
-        background-color: #218838;
+        background-color: var(--primary-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(107, 142, 35, 0.2);
     }
 
     .answers-section h3 {
-        margin-bottom: 1rem;
-        color: #333;
+        font-size: 1.25rem;
+        margin-bottom: 1.5rem;
+        color: var(--primary);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .answers-section h3::before {
+        content: "🗨️";
+        font-size: 1.4rem;
     }
 
     .answer-card {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-left: 4px solid #28a745;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--primary);
+        padding: 1.5rem;
+        border-radius: 16px;
         margin-bottom: 1.5rem;
         position: relative;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
     }
 
-    .like-btn {
-        background: none;
-        border: none;
-        font-size: 1rem;
-        color: #888;
-        cursor: pointer;
-        transition: all 0.3s ease;
+    .answer-card p {
+        color: var(--text);
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .vote-buttons {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 0.5rem;
         margin-top: 0.5rem;
+        justify-content: space-between;
     }
 
-    .like-btn.liked {
-        color: red;
+    .vote-btn {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: var(--text-light);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 0.2rem;
+        position: relative;
+        opacity: 0.5;
     }
 
-    .like-btn:hover {
-        color: #dc3545;
+    .vote-btn::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 0.5rem;
+        background: var(--text);
+        color: white;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .vote-btn:hover::after {
+        opacity: 1;
+        visibility: visible;
+        bottom: calc(100% + 5px);
+    }
+
+    .vote-btn:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    .vote-btn.upvoted {
+        color: var(--upvote);
+        transform: scale(1.1);
+        font-weight: bold;
+        opacity: 1;
+    }
+
+    .vote-btn.downvoted {
+        color: var(--downvote);
+        transform: scale(1.1);
+        font-weight: bold;
+        opacity: 1;
+    }
+
+    .vote-score {
+        font-weight: 600;
+        color: var(--text);
+        margin: 0 0.5rem;
+        min-width: 60px;
+        text-align: right;
+    }
+
+    .answer-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        color: var(--text-light);
+        font-size: 0.9rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .empty-answers {
+        text-align: center;
+        color: var(--text-light);
+        padding: 2rem;
+        background: var(--card-bg);
+        border-radius: 16px;
+        border: 1px solid var(--border);
     }
 </style>
 
 <div class="container">
-
     <!-- Soru Alanı -->
     <div class="question-box">
         <h2>❓ {{ question.text }}</h2>
+        <div class="question-meta">
+            by {{ question.user.username }} on {{ question.created_at|date:"F d, Y" }}
+        </div>
     </div>
 
     <!-- Cevap Formu -->
     <div class="form-section">
-        <h3>💬 Add Your Answer</h3>
+        <h3>Add Your Answer</h3>
         <form method="post">
             {% csrf_token %}
-            {{ form.as_p }}
+            {{ form.content }}
             <button type="submit">Submit Answer</button>
         </form>
     </div>
 
     <!-- Cevaplar -->
     <div class="answers-section">
-        <h3>🗨️ Answers</h3>
-        {% for a in answers %}
+        <h3>Answers</h3>
+        {% for data in answers_data %}
             <div class="answer-card">
-                <p>{{ a.content }}</p>
-                <button class="like-btn {% if user in a.likes.all %}liked{% endif %}" data-id="{{ a.id }}">
-                    ❤️ <span id="like-count-{{ a.id }}">{{ a.likes.count }}</span>
-                </button>
+                <p>{{ data.answer.content }}</p>
+                <div class="answer-meta">
+                    <div class="vote-buttons">
+                        <div class="vote-controls">
+                            <button class="vote-btn {% if data.is_upvoted %}upvoted{% endif %}" 
+                                    data-id="{{ data.answer.id }}" 
+                                    data-action="upvote"
+                                    data-tooltip="{% if data.is_upvoted %}Upvoted - Click to remove{% else %}Click to upvote{% endif %}">
+                                ⬆
+                            </button>
+                            <button class="vote-btn {% if data.is_downvoted %}downvoted{% endif %}" 
+                                    data-id="{{ data.answer.id }}" 
+                                    data-action="downvote"
+                                    data-tooltip="{% if data.is_downvoted %}Downvoted - Click to remove{% else %}Click to downvote{% endif %}">
+                                ⬇
+                            </button>
+                        </div>
+                        <span class="vote-score">Score: <span id="vote-score-{{ data.answer.id }}">{{ data.score }}</span></span>
+                    </div>
+                    <div class="answer-info">
+                        by {{ data.answer.user.username }} on {{ data.answer.created_at|date:"F d, Y" }}
+                    </div>
+                </div>
             </div>
         {% empty %}
-            <p style="color: #777;">There are no answers yet. Be the first to help!</p>
+            <div class="empty-answers">
+                <p>There are no answers yet. Be the first to help!</p>
+            </div>
         {% endfor %}
     </div>
 </div>
 
 <script>
-document.querySelectorAll('.like-btn').forEach(btn => {
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize scores from server data
+    document.querySelectorAll('.answer-card').forEach(card => {
+        const id = card.querySelector('.vote-btn').getAttribute('data-id');
+        const scoreEl = document.getElementById(`vote-score-${id}`);
+        const score = parseInt(scoreEl.textContent);
+        scoreEl.textContent = score;
+    });
+});
+
+document.querySelectorAll('.vote-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
-        fetch(`/like-answer/${id}/`)
-            .then(res => res.json())
-            .then(data => {
-                const countEl = document.getElementById(`like-count-${id}`);
-                countEl.textContent = data.like_count;
-                btn.classList.toggle('liked', data.liked);
-            });
+        const action = btn.getAttribute('data-action');
+        
+        fetch(`/vote-answer/${id}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: `action=${action}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            const upvoteBtn = document.querySelector(`[data-id="${id}"][data-action="upvote"]`);
+            const downvoteBtn = document.querySelector(`[data-id="${id}"][data-action="downvote"]`);
+            const scoreEl = document.getElementById(`vote-score-${id}`);
+
+            scoreEl.textContent = data.score;
+
+            upvoteBtn.classList.toggle('upvoted', data.user_vote === 'upvote');
+            downvoteBtn.classList.toggle('downvoted', data.user_vote === 'downvote');
+
+            // Update tooltips
+            upvoteBtn.setAttribute('data-tooltip', data.user_vote === 'upvote' ? 'Upvoted - Click to remove' : 'Click to upvote');
+            downvoteBtn.setAttribute('data-tooltip', data.user_vote === 'downvote' ? 'Downvoted - Click to remove' : 'Click to downvote');
+        });
     });
 });
 </script>

@@ -1,19 +1,25 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Question, Answer
+from .models import Question, Answer, Upvote, Downvote
 from .forms import QuestionForm, AnswerForm, SignUpForm
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.contrib.auth import logout
-from django.contrib.auth import authenticate, login
+from django.http import JsonResponse, HttpResponseForbidden
+from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.db.models import Count, F
+from django.db.utils import IntegrityError
 
 
 def signup(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('login')
+            try:
+                user = form.save()
+                return redirect('login')
+            except IntegrityError:
+                form.add_error('username', 'This username already exists. Please choose a different one.')
     else:
         form = SignUpForm()
     return render(request, 'cores/signup.html', {'form': form})
@@ -52,36 +58,101 @@ def home(request):
     })
 
 
-def question_detail(request, pk):
-    question = get_object_or_404(Question, pk=pk)
-
-    if not request.user.is_authenticated:
-        return render(request, 'cores/must_login.html')
-
-    answers = question.answers.all().order_by('-created_at')
+def question_detail(request, question_id):
+    question = get_object_or_404(Question, id=question_id)
+    
+    # Get answers with their vote counts
+    answers = Answer.objects.filter(question=question).annotate(
+        upvotes_count=Count('upvotes'),
+        downvotes_count=Count('downvotes')
+    ).annotate(
+        score=F('upvotes_count') - F('downvotes_count')
+    ).order_by('-score')
+    
     if request.method == 'POST':
         form = AnswerForm(request.POST)
         if form.is_valid():
-            a = form.save(commit=False)
-            a.user = request.user
-            a.question = question
-            a.save()
-            return redirect('question_detail', pk=pk)
+            answer = form.save(commit=False)
+            answer.question = question
+            answer.user = request.user
+            answer.save()
+            return redirect('question_detail', question_id=question_id)
     else:
         form = AnswerForm()
-    return render(request, 'cores/question_detail.html', {'question': question, 'answers': answers, 'form': form})
+    
+    # Get user's votes
+    user_upvotes = Upvote.objects.filter(user=request.user).values_list('answer_id', flat=True)
+    user_downvotes = Downvote.objects.filter(user=request.user).values_list('answer_id', flat=True)
+    
+    # Prepare answer data with scores
+    answers_data = []
+    for answer in answers:
+        answers_data.append({
+            'answer': answer,
+            'score': answer.score,
+            'is_upvoted': answer.id in user_upvotes,
+            'is_downvoted': answer.id in user_downvotes
+        })
+    
+    return render(request, 'cores/question_detail.html', {
+        'question': question,
+        'answers': answers,
+        'answers_data': answers_data,
+        'form': form,
+        'user_upvotes': user_upvotes,
+        'user_downvotes': user_downvotes
+    })
 
 
 @login_required
-def like_answer(request, answer_id):
-    answer = get_object_or_404(Answer, pk=answer_id)
-    if request.user in answer.likes.all():
-        answer.likes.remove(request.user)
-        liked = False
-    else:
-        answer.likes.add(request.user)
-        liked = True
-    return JsonResponse({'liked': liked, 'like_count': answer.likes.count()})
+@require_POST
+def vote_answer(request, answer_id):
+    answer = get_object_or_404(Answer, id=answer_id)
+    user = request.user
+    action = request.POST.get('action')
+
+    if action not in ['upvote', 'downvote']:
+        return JsonResponse({'error': 'Invalid action'}, status=400)
+
+    # Get current votes
+    current_upvote = Upvote.objects.filter(answer=answer, user=user).first()
+    current_downvote = Downvote.objects.filter(answer=answer, user=user).first()
+
+    # Handle the vote
+    if action == 'upvote':
+        if current_upvote:
+            # If already upvoted, remove the upvote
+            current_upvote.delete()
+            user_vote = None
+        else:
+            # If not upvoted, remove any downvote and add upvote
+            if current_downvote:
+                current_downvote.delete()
+            Upvote.objects.create(answer=answer, user=user)
+            user_vote = 'upvote'
+    else:  # downvote
+        if current_downvote:
+            # If already downvoted, remove the downvote
+            current_downvote.delete()
+            user_vote = None
+        else:
+            # If not downvoted, remove any upvote and add downvote
+            if current_upvote:
+                current_upvote.delete()
+            Downvote.objects.create(answer=answer, user=user)
+            user_vote = 'downvote'
+
+    # Get fresh counts after all changes
+    upvotes_count = Upvote.objects.filter(answer=answer).count()
+    downvotes_count = Downvote.objects.filter(answer=answer).count()
+    vote_score = upvotes_count - downvotes_count
+
+    return JsonResponse({
+        'score': vote_score,
+        'upvotes': upvotes_count,
+        'downvotes': downvotes_count,
+        'user_vote': user_vote
+    })
 
 def login_view(request):
     if request.method == 'POST':
