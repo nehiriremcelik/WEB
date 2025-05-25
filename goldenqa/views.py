@@ -28,9 +28,17 @@ def home(request):
     all_tags = dict(Question.TAG_CHOICES)
     
     selected_tag = request.GET.get('tag')
+    sort_by = request.GET.get('sort', 'new')  # Default to 'new'
     
     if selected_tag:
-        questions = Question.objects.filter(tag=selected_tag).order_by('-created_at')
+        questions = Question.objects.filter(tag=selected_tag).annotate(
+            answer_count=Count('answers')
+        )
+        
+        if sort_by == 'best':
+            questions = questions.order_by('-answer_count', '-created_at')
+        else:  # 'new'
+            questions = questions.order_by('-created_at')
     else:
         questions = None  
     
@@ -54,14 +62,14 @@ def home(request):
         'form': form,
         'all_tags': all_tags,
         'selected_tag': selected_tag,
-        'login_warning': login_warning
+        'login_warning': login_warning,
+        'sort_by': sort_by
     })
 
 
 def question_detail(request, question_id):
     question = get_object_or_404(Question, id=question_id)
     
-    # Get answers with their vote counts
     answers = Answer.objects.filter(question=question).annotate(
         upvotes_count=Count('upvotes'),
         downvotes_count=Count('downvotes')
@@ -79,12 +87,10 @@ def question_detail(request, question_id):
             return redirect('question_detail', question_id=question_id)
     else:
         form = AnswerForm()
-    
-    # Get user's votes
+
     user_upvotes = Upvote.objects.filter(user=request.user).values_list('answer_id', flat=True)
     user_downvotes = Downvote.objects.filter(user=request.user).values_list('answer_id', flat=True)
-    
-    # Prepare answer data with scores
+
     answers_data = []
     for answer in answers:
         answers_data.append({
@@ -114,35 +120,28 @@ def vote_answer(request, answer_id):
     if action not in ['upvote', 'downvote']:
         return JsonResponse({'error': 'Invalid action'}, status=400)
 
-    # Get current votes
     current_upvote = Upvote.objects.filter(answer=answer, user=user).first()
     current_downvote = Downvote.objects.filter(answer=answer, user=user).first()
 
-    # Handle the vote
     if action == 'upvote':
         if current_upvote:
-            # If already upvoted, remove the upvote
             current_upvote.delete()
             user_vote = None
         else:
-            # If not upvoted, remove any downvote and add upvote
             if current_downvote:
                 current_downvote.delete()
             Upvote.objects.create(answer=answer, user=user)
             user_vote = 'upvote'
-    else:  # downvote
+    else:
         if current_downvote:
-            # If already downvoted, remove the downvote
             current_downvote.delete()
             user_vote = None
         else:
-            # If not downvoted, remove any upvote and add downvote
             if current_upvote:
                 current_upvote.delete()
             Downvote.objects.create(answer=answer, user=user)
             user_vote = 'downvote'
 
-    # Get fresh counts after all changes
     upvotes_count = Upvote.objects.filter(answer=answer).count()
     downvotes_count = Downvote.objects.filter(answer=answer).count()
     vote_score = upvotes_count - downvotes_count

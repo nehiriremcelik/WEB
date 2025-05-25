@@ -231,6 +231,37 @@
         margin-bottom: 1.5rem;
         color: var(--primary);
         font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .sort-buttons {
+        display: flex;
+        gap: 12px;
+    }
+
+    .sort-button {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--card-bg);
+        color: var(--text);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .sort-button:hover {
+        background: var(--background);
+        border-color: var(--primary);
+    }
+
+    .sort-button.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
     }
 
     .question-card {
@@ -258,11 +289,15 @@
     .question-content {
         flex: 2;
         font-size: 1.1rem;
-        line-height: 1.6;
         color: var(--text);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+    }
+
+    .answer-count {
+        color: var(--primary);
+        font-weight: 500;
+        margin-left: 8px;
     }
 
     .question-meta {
@@ -388,12 +423,25 @@
 
     {% if selected_tag %}
         <section class="questions-section">
-            <h2>{{ all_tags|get_item:selected_tag }} Questions</h2>
+            <h2>
+                {{ all_tags|get_item:selected_tag }} Questions
+                <div class="sort-buttons">
+                    <a href="{% url 'home' %}?tag={{ selected_tag }}&sort=new" 
+                       class="sort-button {% if sort_by == 'new' %}active{% endif %}">
+                        New
+                    </a>
+                    <a href="{% url 'home' %}?tag={{ selected_tag }}&sort=best" 
+                       class="sort-button {% if sort_by == 'best' %}active{% endif %}">
+                        Best
+                    </a>
+                </div>
+            </h2>
             {% if questions %}
                 {% for q in questions %}
                     <a class="question-card" href="{% url 'question_detail' q.id %}" {% if not user.is_authenticated %}data-auth="false"{% endif %}>
                         <div class="question-content">
                             {{ q.text|truncatechars:150 }}
+                            <span class="answer-count">({{ q.answer_count }})</span>
                         </div>
                         <div class="question-meta">
                             <span class="question-author">{{ q.user.username }}</span>
